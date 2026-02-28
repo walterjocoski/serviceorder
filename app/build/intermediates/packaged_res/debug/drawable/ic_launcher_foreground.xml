@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Water droplet icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30C54,30 40,48 40,60C40,67.732 46.268,74 54,74C61.732,74 68,67.732 68,60C68,48 54,30 54,30Z"/>
+    
+    <!-- Small waves at bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.7"
+        android:pathData="M30,78Q36,75 42,78T54,78Q60,75 66,78T78,78"/>
+    
+    <!-- Text RF -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,45L42,52L45,52Q47,52 47,50Q47,48 45,48L42,48L42,45M42,42L45,42Q48,42 49.5,43.5Q51,45 51,47.5Q51,49 50,50L52,54L48,54L46.5,50.5L42,50.5L42,54L39,54L39,42L42,42Z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,42L62,42L62,45L59,45L59,48L61,48L61,51L59,51L59,54L56,54L56,42Z"/>
+</vector>
