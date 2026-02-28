@@ -19,6 +19,9 @@ class ClientManagementViewModel @Inject constructor(
     private val _clients = MutableStateFlow<List<Client>>(emptyList())
     val clients: StateFlow<List<Client>> = _clients.asStateFlow()
 
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+
     init {
         viewModelScope.launch {
             clientRepository.getAll().collect { _clients.value = it }
@@ -28,18 +31,16 @@ class ClientManagementViewModel @Inject constructor(
     fun addClient(client: Client) {
         viewModelScope.launch {
             clientRepository.insert(client)
+            _message.value = "Cliente cadastrado com sucesso!"
         }
     }
 
     fun updateClient(client: Client) {
         viewModelScope.launch {
             clientRepository.update(client)
+            _message.value = "Cliente atualizado!"
         }
     }
 
-    fun deleteClient(client: Client) {
-        viewModelScope.launch {
-            clientRepository.delete(client)
-        }
-    }
+    fun clearMessage() { _message.value = null }
 }

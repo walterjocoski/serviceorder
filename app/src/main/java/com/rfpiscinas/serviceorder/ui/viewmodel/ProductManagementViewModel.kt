@@ -19,6 +19,9 @@ class ProductManagementViewModel @Inject constructor(
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+
     init {
         viewModelScope.launch {
             productRepository.getAll().collect { _products.value = it }
@@ -28,18 +31,24 @@ class ProductManagementViewModel @Inject constructor(
     fun addProduct(product: Product) {
         viewModelScope.launch {
             productRepository.insert(product)
+            _message.value = "Produto cadastrado com sucesso!"
         }
     }
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
             productRepository.update(product)
+            _message.value = "Produto atualizado!"
         }
     }
 
-    fun deleteProduct(product: Product) {
+    fun toggleActive(product: Product) {
         viewModelScope.launch {
-            productRepository.delete(product)
+            productRepository.update(product.copy(active = !product.active))
+            val status = if (!product.active) "ativado" else "inativado"
+            _message.value = "Produto $status!"
         }
     }
+
+    fun clearMessage() { _message.value = null }
 }

@@ -19,6 +19,9 @@ class EmployeeManagementViewModel @Inject constructor(
     private val _employees = MutableStateFlow<List<User>>(emptyList())
     val employees: StateFlow<List<User>> = _employees.asStateFlow()
 
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+
     init {
         viewModelScope.launch {
             userRepository.getEmployees().collect { _employees.value = it }
@@ -28,18 +31,16 @@ class EmployeeManagementViewModel @Inject constructor(
     fun addEmployee(user: User) {
         viewModelScope.launch {
             userRepository.insert(user)
+            _message.value = "Funcionário cadastrado com sucesso!"
         }
     }
 
     fun updateEmployee(user: User) {
         viewModelScope.launch {
             userRepository.update(user)
+            _message.value = "Funcionário atualizado!"
         }
     }
 
-    fun deleteEmployee(user: User) {
-        viewModelScope.launch {
-            userRepository.delete(user)
-        }
-    }
+    fun clearMessage() { _message.value = null }
 }

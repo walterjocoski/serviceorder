@@ -237,66 +237,6 @@ public final class UserDao_Impl implements UserDao {
   }
 
   @Override
-  public Flow<List<UserEntity>> getByRole(final UserRole role) {
-    final String _sql = "SELECT * FROM users WHERE role = ? ORDER BY name ASC";
-    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
-    int _argIndex = 1;
-    final String _tmp = __converters.fromUserRole(role);
-    _statement.bindString(_argIndex, _tmp);
-    return CoroutinesRoom.createFlow(__db, false, new String[] {"users"}, new Callable<List<UserEntity>>() {
-      @Override
-      @NonNull
-      public List<UserEntity> call() throws Exception {
-        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
-        try {
-          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
-          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
-          final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
-          final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
-          final int _cursorIndexOfAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "address");
-          final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
-          final int _cursorIndexOfActive = CursorUtil.getColumnIndexOrThrow(_cursor, "active");
-          final int _cursorIndexOfStartDate = CursorUtil.getColumnIndexOrThrow(_cursor, "startDate");
-          final List<UserEntity> _result = new ArrayList<UserEntity>(_cursor.getCount());
-          while (_cursor.moveToNext()) {
-            final UserEntity _item;
-            final long _tmpId;
-            _tmpId = _cursor.getLong(_cursorIndexOfId);
-            final String _tmpName;
-            _tmpName = _cursor.getString(_cursorIndexOfName);
-            final String _tmpEmail;
-            _tmpEmail = _cursor.getString(_cursorIndexOfEmail);
-            final String _tmpPhone;
-            _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
-            final String _tmpAddress;
-            _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
-            final UserRole _tmpRole;
-            final String _tmp_1;
-            _tmp_1 = _cursor.getString(_cursorIndexOfRole);
-            _tmpRole = __converters.toUserRole(_tmp_1);
-            final boolean _tmpActive;
-            final int _tmp_2;
-            _tmp_2 = _cursor.getInt(_cursorIndexOfActive);
-            _tmpActive = _tmp_2 != 0;
-            final String _tmpStartDate;
-            _tmpStartDate = _cursor.getString(_cursorIndexOfStartDate);
-            _item = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpAddress,_tmpRole,_tmpActive,_tmpStartDate);
-            _result.add(_item);
-          }
-          return _result;
-        } finally {
-          _cursor.close();
-        }
-      }
-
-      @Override
-      protected void finalize() {
-        _statement.release();
-      }
-    });
-  }
-
-  @Override
   public Flow<List<UserEntity>> getEmployees() {
     final String _sql = "SELECT * FROM users WHERE role = 'EMPLOYEE' ORDER BY name ASC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
@@ -356,6 +296,63 @@ public final class UserDao_Impl implements UserDao {
   @Override
   public Flow<List<UserEntity>> getActiveEmployees() {
     final String _sql = "SELECT * FROM users WHERE role = 'EMPLOYEE' AND active = 1 ORDER BY name ASC";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    return CoroutinesRoom.createFlow(__db, false, new String[] {"users"}, new Callable<List<UserEntity>>() {
+      @Override
+      @NonNull
+      public List<UserEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
+          final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
+          final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
+          final int _cursorIndexOfAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "address");
+          final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfActive = CursorUtil.getColumnIndexOrThrow(_cursor, "active");
+          final int _cursorIndexOfStartDate = CursorUtil.getColumnIndexOrThrow(_cursor, "startDate");
+          final List<UserEntity> _result = new ArrayList<UserEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final UserEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final String _tmpName;
+            _tmpName = _cursor.getString(_cursorIndexOfName);
+            final String _tmpEmail;
+            _tmpEmail = _cursor.getString(_cursorIndexOfEmail);
+            final String _tmpPhone;
+            _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
+            final String _tmpAddress;
+            _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
+            final UserRole _tmpRole;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfRole);
+            _tmpRole = __converters.toUserRole(_tmp);
+            final boolean _tmpActive;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfActive);
+            _tmpActive = _tmp_1 != 0;
+            final String _tmpStartDate;
+            _tmpStartDate = _cursor.getString(_cursorIndexOfStartDate);
+            _item = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpAddress,_tmpRole,_tmpActive,_tmpStartDate);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+        }
+      }
+
+      @Override
+      protected void finalize() {
+        _statement.release();
+      }
+    });
+  }
+
+  @Override
+  public Flow<List<UserEntity>> getManagers() {
+    final String _sql = "SELECT * FROM users WHERE role = 'MANAGER' ORDER BY name ASC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return CoroutinesRoom.createFlow(__db, false, new String[] {"users"}, new Callable<List<UserEntity>>() {
       @Override
