@@ -27,6 +27,9 @@ class ServiceOrderRepository @Inject constructor(
     fun getDistinctEmployeeNames(): Flow<List<String>> =
         serviceOrderDao.getDistinctEmployeeNames()
 
+    fun getDistinctClientNames(): Flow<List<String>> =
+        serviceOrderDao.getDistinctClientNames()
+
     suspend fun updateOrderStatus(orderId: Long, status: OrderStatus, endDateTime: String? = null) {
         serviceOrderDao.updateOrderStatus(orderId, status.name, endDateTime)
     }

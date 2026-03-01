@@ -52,6 +52,9 @@ interface ServiceOrderDao {
     @Query("SELECT DISTINCT employeeName FROM service_orders ORDER BY employeeName ASC")
     fun getDistinctEmployeeNames(): Flow<List<String>>
 
+    @Query("SELECT DISTINCT clientName FROM service_orders ORDER BY clientName ASC")
+    fun getDistinctClientNames(): Flow<List<String>>
+
     @Query("UPDATE service_orders SET status = :statusStr, endDateTime = :endDateTime WHERE id = :orderId")
     suspend fun updateOrderStatus(orderId: Long, statusStr: String, endDateTime: String?)
 
