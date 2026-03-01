@@ -501,6 +501,75 @@ public final class ServiceOrderDao_Impl implements ServiceOrderDao {
   }
 
   @Override
+  public Flow<List<ServiceOrderEntity>> getByClient(final long clientId) {
+    final String _sql = "SELECT * FROM service_orders WHERE clientId = ? ORDER BY id DESC";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, clientId);
+    return CoroutinesRoom.createFlow(__db, false, new String[] {"service_orders"}, new Callable<List<ServiceOrderEntity>>() {
+      @Override
+      @NonNull
+      public List<ServiceOrderEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfClientId = CursorUtil.getColumnIndexOrThrow(_cursor, "clientId");
+          final int _cursorIndexOfClientName = CursorUtil.getColumnIndexOrThrow(_cursor, "clientName");
+          final int _cursorIndexOfClientAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "clientAddress");
+          final int _cursorIndexOfEmployeeId = CursorUtil.getColumnIndexOrThrow(_cursor, "employeeId");
+          final int _cursorIndexOfEmployeeName = CursorUtil.getColumnIndexOrThrow(_cursor, "employeeName");
+          final int _cursorIndexOfStatus = CursorUtil.getColumnIndexOrThrow(_cursor, "status");
+          final int _cursorIndexOfStartDateTime = CursorUtil.getColumnIndexOrThrow(_cursor, "startDateTime");
+          final int _cursorIndexOfEndDateTime = CursorUtil.getColumnIndexOrThrow(_cursor, "endDateTime");
+          final int _cursorIndexOfSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "synced");
+          final List<ServiceOrderEntity> _result = new ArrayList<ServiceOrderEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final ServiceOrderEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final long _tmpClientId;
+            _tmpClientId = _cursor.getLong(_cursorIndexOfClientId);
+            final String _tmpClientName;
+            _tmpClientName = _cursor.getString(_cursorIndexOfClientName);
+            final String _tmpClientAddress;
+            _tmpClientAddress = _cursor.getString(_cursorIndexOfClientAddress);
+            final long _tmpEmployeeId;
+            _tmpEmployeeId = _cursor.getLong(_cursorIndexOfEmployeeId);
+            final String _tmpEmployeeName;
+            _tmpEmployeeName = _cursor.getString(_cursorIndexOfEmployeeName);
+            final OrderStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toOrderStatus(_tmp);
+            final String _tmpStartDateTime;
+            _tmpStartDateTime = _cursor.getString(_cursorIndexOfStartDateTime);
+            final String _tmpEndDateTime;
+            if (_cursor.isNull(_cursorIndexOfEndDateTime)) {
+              _tmpEndDateTime = null;
+            } else {
+              _tmpEndDateTime = _cursor.getString(_cursorIndexOfEndDateTime);
+            }
+            final boolean _tmpSynced;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfSynced);
+            _tmpSynced = _tmp_1 != 0;
+            _item = new ServiceOrderEntity(_tmpId,_tmpClientId,_tmpClientName,_tmpClientAddress,_tmpEmployeeId,_tmpEmployeeName,_tmpStatus,_tmpStartDateTime,_tmpEndDateTime,_tmpSynced);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+        }
+      }
+
+      @Override
+      protected void finalize() {
+        _statement.release();
+      }
+    });
+  }
+
+  @Override
   public Flow<List<ServiceOrderEntity>> getByEmployee(final long employeeId) {
     final String _sql = "SELECT * FROM service_orders WHERE employeeId = ? ORDER BY id DESC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);

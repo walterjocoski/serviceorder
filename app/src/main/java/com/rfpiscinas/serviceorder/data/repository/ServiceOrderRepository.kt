@@ -7,6 +7,8 @@ import com.rfpiscinas.serviceorder.data.local.entity.ServiceOrderProductEntity
 import com.rfpiscinas.serviceorder.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -156,4 +158,9 @@ class ServiceOrderRepository @Inject constructor(
             synced = entity.synced
         )
     }
+
+    fun getOrdersByClient(clientId: Long): Flow<List<ServiceOrder>> =
+        serviceOrderDao.getByClient(clientId).map { entities ->
+            entities.map { loadFullOrder(it) }
+        }
 }

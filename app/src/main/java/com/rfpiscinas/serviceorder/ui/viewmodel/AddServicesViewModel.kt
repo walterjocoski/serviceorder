@@ -7,13 +7,12 @@ import com.rfpiscinas.serviceorder.data.repository.ClientRepository
 import com.rfpiscinas.serviceorder.data.repository.ProductRepository
 import com.rfpiscinas.serviceorder.data.repository.ServiceOrderRepository
 import com.rfpiscinas.serviceorder.data.repository.ServiceRepository
+import com.rfpiscinas.serviceorder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -43,54 +42,33 @@ class AddServicesViewModel @Inject constructor(
     val orderFinalized: StateFlow<Boolean> = _orderFinalized.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            serviceRepository.getActiveServices().collect { _services.value = it }
-        }
-        viewModelScope.launch {
-            productRepository.getActiveProducts().collect { _products.value = it }
-        }
-        viewModelScope.launch {
-            clientRepository.getActiveClients().collect { _activeClients.value = it }
-        }
+        viewModelScope.launch { serviceRepository.getActiveServices().collect { _services.value = it } }
+        viewModelScope.launch { productRepository.getActiveProducts().collect { _products.value = it } }
+        viewModelScope.launch { clientRepository.getActiveClients().collect { _activeClients.value = it } }
     }
 
     fun loadClient(clientId: Long) {
-        viewModelScope.launch {
-            _client.value = clientRepository.getById(clientId)
-        }
+        viewModelScope.launch { _client.value = clientRepository.getById(clientId) }
     }
 
-    // Cria a OS com status IN_PROGRESS (prestador iniciou na hora)
-    fun createAndStartOrder(
-        client: Client,
-        employeeId: Long,
-        employeeName: String,
-        startDateTime: String
-    ) {
+    fun createAndStartOrder(client: Client, employeeId: Long, employeeName: String, startDateTime: String) {
         viewModelScope.launch {
             val order = ServiceOrder(
-                id = 0,
-                clientId = client.id,
-                clientName = client.name,
-                clientAddress = client.address,
-                employeeId = employeeId,
-                employeeName = employeeName,
-                status = OrderStatus.IN_PROGRESS,
-                startDateTime = startDateTime,
-                endDateTime = null,
-                items = emptyList(),
-                synced = false
+                id = 0, clientId = client.id, clientName = client.name,
+                clientAddress = client.address, employeeId = employeeId,
+                employeeName = employeeName, status = OrderStatus.IN_PROGRESS,
+                startDateTime = startDateTime, endDateTime = null,
+                items = emptyList(), synced = false
             )
             val newId = serviceOrderRepository.insertOrder(order)
             _orderCreatedId.value = newId
         }
     }
 
-    // Finaliza a OS: salva os serviços e marca como COMPLETED
+    // Finalização: endDateTime é sysdate no formato padrão DD/MM/YYYY HH:mm:ss
     fun finalizeOrder(orderId: Long, items: List<ServiceOrderItem>) {
         viewModelScope.launch {
-            val endDateTime = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            val endDateTime = DateUtils.now()
             serviceOrderRepository.finalizeOrder(orderId, endDateTime, items)
             _orderFinalized.value = true
         }

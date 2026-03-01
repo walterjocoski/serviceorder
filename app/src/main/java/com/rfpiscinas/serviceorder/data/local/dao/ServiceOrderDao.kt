@@ -13,6 +13,9 @@ interface ServiceOrderDao {
     @Query("SELECT * FROM service_orders ORDER BY id DESC")
     fun getAll(): Flow<List<ServiceOrderEntity>>
 
+    @Query("SELECT * FROM service_orders WHERE clientId = :clientId ORDER BY id DESC")
+    fun getByClient(clientId: Long): Flow<List<ServiceOrderEntity>>
+
     @Query("SELECT * FROM service_orders WHERE employeeId = :employeeId ORDER BY id DESC")
     fun getByEmployee(employeeId: Long): Flow<List<ServiceOrderEntity>>
 

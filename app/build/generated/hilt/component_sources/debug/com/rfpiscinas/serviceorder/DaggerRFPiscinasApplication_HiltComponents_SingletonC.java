@@ -535,7 +535,7 @@ public final class DaggerRFPiscinasApplication_HiltComponents_SingletonC {
           return (T) new ProductManagementViewModel(singletonCImpl.productRepositoryProvider.get());
 
           case 9: // com.rfpiscinas.serviceorder.ui.viewmodel.ReportViewModel 
-          return (T) new ReportViewModel(singletonCImpl.serviceOrderRepositoryProvider.get());
+          return (T) new ReportViewModel(singletonCImpl.serviceOrderRepositoryProvider.get(), singletonCImpl.clientRepositoryProvider.get());
 
           case 10: // com.rfpiscinas.serviceorder.ui.viewmodel.ServiceManagementViewModel 
           return (T) new ServiceManagementViewModel(singletonCImpl.serviceRepositoryProvider.get());

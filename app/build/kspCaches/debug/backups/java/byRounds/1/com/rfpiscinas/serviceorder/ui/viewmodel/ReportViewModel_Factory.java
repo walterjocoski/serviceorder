@@ -1,5 +1,6 @@
 package com.rfpiscinas.serviceorder.ui.viewmodel;
 
+import com.rfpiscinas.serviceorder.data.repository.ClientRepository;
 import com.rfpiscinas.serviceorder.data.repository.ServiceOrderRepository;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
@@ -24,21 +25,27 @@ import javax.inject.Provider;
 public final class ReportViewModel_Factory implements Factory<ReportViewModel> {
   private final Provider<ServiceOrderRepository> serviceOrderRepositoryProvider;
 
-  public ReportViewModel_Factory(Provider<ServiceOrderRepository> serviceOrderRepositoryProvider) {
+  private final Provider<ClientRepository> clientRepositoryProvider;
+
+  public ReportViewModel_Factory(Provider<ServiceOrderRepository> serviceOrderRepositoryProvider,
+      Provider<ClientRepository> clientRepositoryProvider) {
     this.serviceOrderRepositoryProvider = serviceOrderRepositoryProvider;
+    this.clientRepositoryProvider = clientRepositoryProvider;
   }
 
   @Override
   public ReportViewModel get() {
-    return newInstance(serviceOrderRepositoryProvider.get());
+    return newInstance(serviceOrderRepositoryProvider.get(), clientRepositoryProvider.get());
   }
 
   public static ReportViewModel_Factory create(
-      Provider<ServiceOrderRepository> serviceOrderRepositoryProvider) {
-    return new ReportViewModel_Factory(serviceOrderRepositoryProvider);
+      Provider<ServiceOrderRepository> serviceOrderRepositoryProvider,
+      Provider<ClientRepository> clientRepositoryProvider) {
+    return new ReportViewModel_Factory(serviceOrderRepositoryProvider, clientRepositoryProvider);
   }
 
-  public static ReportViewModel newInstance(ServiceOrderRepository serviceOrderRepository) {
-    return new ReportViewModel(serviceOrderRepository);
+  public static ReportViewModel newInstance(ServiceOrderRepository serviceOrderRepository,
+      ClientRepository clientRepository) {
+    return new ReportViewModel(serviceOrderRepository, clientRepository);
   }
 }

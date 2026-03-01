@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.rfpiscinas.serviceorder.data.model.OrderStatus
 import com.rfpiscinas.serviceorder.data.model.ServiceOrder
 import com.rfpiscinas.serviceorder.data.repository.ServiceOrderRepository
+import com.rfpiscinas.serviceorder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// Data class auxiliar para agrupar os 5 filtros em um único objeto
 private data class Filters(
     val status: OrderStatus?,
     val employee: String?,
@@ -35,6 +35,7 @@ class AllOrdersViewModel @Inject constructor(
     private val _selectedClient = MutableStateFlow<String?>(null)
     val selectedClient: StateFlow<String?> = _selectedClient.asStateFlow()
 
+    // Datas no formato DD/MM/YYYY (só data, sem hora — hora é normalizada no filtro)
     private val _dateFrom = MutableStateFlow<String?>(null)
     val dateFrom: StateFlow<String?> = _dateFrom.asStateFlow()
 
@@ -44,7 +45,6 @@ class AllOrdersViewModel @Inject constructor(
     val employeeNames = MutableStateFlow<List<String>>(emptyList())
     val clientNames = MutableStateFlow<List<String>>(emptyList())
 
-    // combine suporta no máximo 5 flows — agrupamos os filtros num objeto intermediário
     private val _filters: Flow<Filters> = combine(
         _selectedStatus, _selectedEmployee, _selectedClient, _dateFrom, _dateTo
     ) { status, employee, client, from, to ->
@@ -58,8 +58,18 @@ class AllOrdersViewModel @Inject constructor(
             .let { list -> if (f.status != null) list.filter { it.status == f.status } else list }
             .let { list -> if (f.employee != null) list.filter { it.employeeName == f.employee } else list }
             .let { list -> if (f.client != null) list.filter { it.clientName == f.client } else list }
-            .let { list -> if (f.from != null) list.filter { it.startDateTime >= f.from } else list }
-            .let { list -> if (f.to != null) list.filter { it.startDateTime <= "${f.to} 23:59" } else list }
+            .let { list ->
+                if (f.from != null) {
+                    val fromDt = DateUtils.startOfDay(f.from)  // DD/MM/YYYY 00:00:00
+                    list.filter { DateUtils.isAfterOrEqual(it.startDateTime, fromDt) }
+                } else list
+            }
+            .let { list ->
+                if (f.to != null) {
+                    val toDt = DateUtils.endOfDay(f.to)        // DD/MM/YYYY 23:59:59
+                    list.filter { DateUtils.isBeforeOrEqual(it.startDateTime, toDt) }
+                } else list
+            }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val hasActiveFilters: StateFlow<Boolean> = _filters.map { f ->
@@ -67,15 +77,9 @@ class AllOrdersViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     init {
-        viewModelScope.launch {
-            serviceOrderRepository.getAllOrders().collect { _allOrders.value = it }
-        }
-        viewModelScope.launch {
-            serviceOrderRepository.getDistinctEmployeeNames().collect { employeeNames.value = it }
-        }
-        viewModelScope.launch {
-            serviceOrderRepository.getDistinctClientNames().collect { clientNames.value = it }
-        }
+        viewModelScope.launch { serviceOrderRepository.getAllOrders().collect { _allOrders.value = it } }
+        viewModelScope.launch { serviceOrderRepository.getDistinctEmployeeNames().collect { employeeNames.value = it } }
+        viewModelScope.launch { serviceOrderRepository.getDistinctClientNames().collect { clientNames.value = it } }
     }
 
     fun setStatusFilter(status: OrderStatus?) { _selectedStatus.value = status }

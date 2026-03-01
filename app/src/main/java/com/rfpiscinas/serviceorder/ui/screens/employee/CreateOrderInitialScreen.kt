@@ -1,5 +1,7 @@
 package com.rfpiscinas.serviceorder.ui.screens.employee
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,14 +12,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.rfpiscinas.serviceorder.data.model.Client
 import com.rfpiscinas.serviceorder.data.model.User
 import com.rfpiscinas.serviceorder.ui.viewmodel.AddServicesViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import com.rfpiscinas.serviceorder.util.DateUtils
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,21 +30,25 @@ fun CreateOrderInitialScreen(
     onOrderCreated: (Long) -> Unit,
     viewModel: AddServicesViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var selectedClient by remember { mutableStateOf<Client?>(null) }
     var showClientDialog by remember { mutableStateOf(false) }
-    var startDate by remember { mutableStateOf("") }
+
+    // Inicializa com data/hora atual no novo formato
+    var startDate by remember { mutableStateOf(DateUtils.today()) }   // DD/MM/YYYY
     var startTime by remember { mutableStateOf("") }
 
+    // Preenche hora atual na primeira composição
     LaunchedEffect(Unit) {
-        val now = LocalDateTime.now()
-        startDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        startTime = now.format(DateTimeFormatter.ofPattern("HH:mm"))
+        val cal = Calendar.getInstance()
+        val h = cal.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
+        val m = cal.get(Calendar.MINUTE).toString().padStart(2, '0')
+        startTime = "$h:$m"
     }
 
     val activeClients by viewModel.activeClients.collectAsState()
     val orderCreatedId by viewModel.orderCreatedId.collectAsState()
 
-    // Navegar quando OS for criada
     LaunchedEffect(orderCreatedId) {
         orderCreatedId?.let {
             viewModel.resetState()
@@ -51,12 +58,33 @@ fun CreateOrderInitialScreen(
 
     val isValid = selectedClient != null && startDate.isNotEmpty() && startTime.isNotEmpty()
 
+    // DatePickerDialog do Android — abre calendário nativo
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, day ->
+            startDate = "${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year"
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    // TimePickerDialog do Android — abre relógio nativo
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hour, minute ->
+            startTime = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+        },
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+        true // formato 24h
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Nova Ordem de Serviço", fontWeight = FontWeight.Bold)
-                },
+                title = { Text("Nova Ordem de Serviço", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -78,32 +106,17 @@ fun CreateOrderInitialScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Prestador
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
+                    Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.secondary)
                     Column {
-                        Text(
-                            text = "Prestador",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = currentUser.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Prestador", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                        Text(currentUser.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -111,119 +124,103 @@ fun CreateOrderInitialScreen(
             // Seleção de Cliente
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Cliente *",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    Text("Cliente *", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
                     if (selectedClient != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = selectedClient!!.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = selectedClient!!.address,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    Text(selectedClient!!.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(selectedClient!!.address, style = MaterialTheme.typography.bodySmall)
                                 }
                                 IconButton(onClick = { showClientDialog = true }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Alterar cliente")
+                                    Icon(Icons.Default.Edit, "Alterar cliente")
                                 }
                             }
                         }
                     } else {
-                        OutlinedButton(
-                            onClick = { showClientDialog = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
+                        OutlinedButton(onClick = { showClientDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.PersonAdd, null)
+                            Spacer(Modifier.width(8.dp))
                             Text("Selecionar Cliente")
                         }
                     }
                 }
             }
 
-            // Data e Hora
+            // Data e Hora com pickers nativos
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Data e Hora de Início *",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Text("Data e Hora de Início *", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Campo de data — abre DatePickerDialog ao tocar
                         OutlinedTextField(
                             value = startDate,
                             onValueChange = { startDate = it },
                             label = { Text("Data") },
-                            placeholder = { Text("2024-02-15") },
+                            placeholder = { Text("DD/MM/AAAA") },
                             leadingIcon = {
-                                Icon(Icons.Default.CalendarToday, contentDescription = null)
+                                IconButton(onClick = { datePickerDialog.show() }) {
+                                    Icon(Icons.Default.CalendarToday, "Abrir calendário",
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
                             },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
+                        // Campo de hora — abre TimePickerDialog ao tocar
                         OutlinedTextField(
                             value = startTime,
                             onValueChange = { startTime = it },
                             label = { Text("Hora") },
-                            placeholder = { Text("14:30") },
+                            placeholder = { Text("HH:MM") },
                             leadingIcon = {
-                                Icon(Icons.Default.AccessTime, contentDescription = null)
+                                IconButton(onClick = { timePickerDialog.show() }) {
+                                    Icon(Icons.Default.AccessTime, "Abrir relógio",
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
                             },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Formato: Data (AAAA-MM-DD) e Hora (HH:MM)",
+                        "Toque no ícone para usar o calendário/relógio, ou digite diretamente.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
 
             Button(
                 onClick = {
                     selectedClient?.let { client ->
+                        // Monta o startDateTime no formato DD/MM/YYYY HH:mm:ss
+                        val datetime = "${startDate.trim()} ${startTime.trim()}:00"
                         viewModel.createAndStartOrder(
                             client = client,
                             employeeId = currentUser.id,
                             employeeName = currentUser.name.split(" ").first(),
-                            startDateTime = "$startDate $startTime"
+                            startDateTime = datetime
                         )
                     }
                 },
                 enabled = isValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.ArrowForward, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.Default.ArrowForward, null)
+                Spacer(Modifier.width(8.dp))
                 Text("Iniciar Atendimento e Lançar Serviços")
             }
         }
@@ -238,48 +235,34 @@ fun CreateOrderInitialScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (activeClients.isEmpty()) {
                         item {
-                            Text(
-                                text = "Nenhum cliente ativo disponível",
+                            Text("Nenhum cliente ativo disponível",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     } else {
                         items(activeClients) { client ->
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedClient = client
-                                        showClientDialog = false
-                                    },
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    selectedClient = client
+                                    showClientDialog = false
+                                },
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (selectedClient?.id == client.id)
                                         MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.surface
+                                    else MaterialTheme.colorScheme.surface
                                 )
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = client.name,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = client.address,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text(client.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    Text(client.address, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
                     }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { showClientDialog = false }) { Text("Fechar") }
-            }
+            confirmButton = { TextButton(onClick = { showClientDialog = false }) { Text("Fechar") } }
         )
     }
 }
