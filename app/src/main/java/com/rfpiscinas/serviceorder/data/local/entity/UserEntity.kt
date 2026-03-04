@@ -11,6 +11,7 @@ data class UserEntity(
     val id: Long = 0,
     val name: String,
     val email: String,
+    val passwordHash: String = "",
     val phone: String = "",
     val address: String = "",
     val role: UserRole,
@@ -18,26 +19,15 @@ data class UserEntity(
     val startDate: String = ""
 ) {
     fun toModel() = User(
-        id = id,
-        name = name,
-        email = email,
-        phone = phone,
-        address = address,
-        role = role,
-        active = active,
-        startDate = startDate
+        id = id, name = name, email = email, passwordHash = passwordHash,
+        phone = phone, address = address, role = role, active = active, startDate = startDate
     )
 
     companion object {
         fun fromModel(model: User) = UserEntity(
-            id = model.id,
-            name = model.name,
-            email = model.email,
-            phone = model.phone,
-            address = model.address,
-            role = model.role,
-            active = model.active,
-            startDate = model.startDate
+            id = model.id, name = model.name, email = model.email,
+            passwordHash = model.passwordHash, phone = model.phone, address = model.address,
+            role = model.role, active = model.active, startDate = model.startDate
         )
     }
 }

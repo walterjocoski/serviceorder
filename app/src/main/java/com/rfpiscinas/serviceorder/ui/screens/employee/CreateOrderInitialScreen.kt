@@ -3,6 +3,8 @@ package com.rfpiscinas.serviceorder.ui.screens.employee
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.rfpiscinas.serviceorder.data.model.Client
 import com.rfpiscinas.serviceorder.data.model.User
 import com.rfpiscinas.serviceorder.ui.viewmodel.AddServicesViewModel
+import com.rfpiscinas.serviceorder.util.DateMaskTransformation
 import com.rfpiscinas.serviceorder.util.DateUtils
 import java.util.Calendar
 
@@ -35,7 +38,8 @@ fun CreateOrderInitialScreen(
     var showClientDialog by remember { mutableStateOf(false) }
 
     // Inicializa com data/hora atual no novo formato
-    var startDate by remember { mutableStateOf(DateUtils.today()) }   // DD/MM/YYYY
+    // startDate armazena apenas dígitos; DateMaskTransformation exibe DD/MM/YYYY
+    var startDate by remember { mutableStateOf(DateUtils.displayToDigits(DateUtils.today())) }
     var startTime by remember { mutableStateOf("") }
 
     // Preenche hora atual na primeira composição
@@ -63,7 +67,7 @@ fun CreateOrderInitialScreen(
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, day ->
-            startDate = "${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year"
+            startDate = DateUtils.displayToDigits("${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/$year")
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -164,7 +168,8 @@ fun CreateOrderInitialScreen(
                         // Campo de data — abre DatePickerDialog ao tocar
                         OutlinedTextField(
                             value = startDate,
-                            onValueChange = { startDate = it },
+                            onValueChange = { startDate = DateUtils.filterDateDigits(it) },
+                            visualTransformation = DateMaskTransformation(),
                             label = { Text("Data") },
                             placeholder = { Text("DD/MM/AAAA") },
                             leadingIcon = {
@@ -173,6 +178,7 @@ fun CreateOrderInitialScreen(
                                         tint = MaterialTheme.colorScheme.primary)
                                 }
                             },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -207,7 +213,7 @@ fun CreateOrderInitialScreen(
                 onClick = {
                     selectedClient?.let { client ->
                         // Monta o startDateTime no formato DD/MM/YYYY HH:mm:ss
-                        val datetime = "${startDate.trim()} ${startTime.trim()}:00"
+                        val datetime = "${DateUtils.digitsToDisplay(startDate)} ${startTime.trim()}:00"
                         viewModel.createAndStartOrder(
                             client = client,
                             employeeId = currentUser.id,

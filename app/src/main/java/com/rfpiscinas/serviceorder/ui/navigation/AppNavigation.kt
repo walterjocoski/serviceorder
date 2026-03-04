@@ -1,10 +1,11 @@
 package com.rfpiscinas.serviceorder.ui.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.rfpiscinas.serviceorder.data.model.User
+import com.rfpiscinas.serviceorder.data.model.UserRole
 import com.rfpiscinas.serviceorder.ui.screens.employee.AddServicesScreen
 import com.rfpiscinas.serviceorder.ui.screens.employee.CreateOrderInitialScreen
 import com.rfpiscinas.serviceorder.ui.screens.employee.EmployeeHomeScreen
@@ -36,44 +37,46 @@ fun AppNavigation(
     navController: NavHostController,
     startDestination: String = Screen.Login.route
 ) {
-    // Usuário logado compartilhado entre telas (simples com remember no nível da activity)
-    var currentUser: User? = null
+    // currentUser é um estado mutável compartilhado entre todas as telas do grafo
+    var currentUser by remember { mutableStateOf<User?>(null) }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
+    NavHost(navController = navController, startDestination = startDestination) {
+
+        // ── Login ──────────────────────────────────────────────────────────
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = { user ->
                     currentUser = user
-                    val destination = when (user.role) {
-                        com.rfpiscinas.serviceorder.data.model.UserRole.EMPLOYEE ->
-                            Screen.EmployeeHome.route
-                        com.rfpiscinas.serviceorder.data.model.UserRole.MANAGER,
-                        com.rfpiscinas.serviceorder.data.model.UserRole.ADMIN ->
-                            Screen.ManagerHome.route
+                    val dest = when (user.role) {
+                        UserRole.EMPLOYEE -> Screen.EmployeeHome.route
+                        UserRole.MANAGER,
+                        UserRole.MASTER  -> Screen.ManagerHome.route
                         else -> Screen.Login.route
                     }
-                    navController.navigate(destination) {
+                    navController.navigate(dest) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
 
+        // ── Employee ───────────────────────────────────────────────────────
         composable(Screen.EmployeeHome.route) {
             currentUser?.let { user ->
                 EmployeeHomeScreen(
                     currentUser = user,
-                    onCreateOrder = {
-                        navController.navigate(Screen.CreateOrder.route)
-                    },
+                    onCreateOrder = { navController.navigate(Screen.CreateOrder.route) },
                     onOrderClick = { orderId ->
                         navController.navigate(Screen.OrderDetail.createRoute(orderId))
                     },
                     onAddServices = { orderId ->
                         navController.navigate(Screen.AddServices.createRoute(orderId))
+                    },
+                    onLogout = {
+                        currentUser = null
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -85,7 +88,6 @@ fun AppNavigation(
                     currentUser = user,
                     onNavigateBack = { navController.popBackStack() },
                     onOrderCreated = { orderId ->
-                        // Vai para tela de lançar serviços após criar a OS
                         navController.navigate(Screen.AddServices.createRoute(orderId)) {
                             popUpTo(Screen.CreateOrder.route) { inclusive = true }
                         }
@@ -96,10 +98,10 @@ fun AppNavigation(
 
         composable(Screen.AddServices.route) { backStackEntry ->
             val orderId = backStackEntry.arguments?.getString("orderId")?.toLongOrNull() ?: 0L
-            currentUser?.let { user ->
+            currentUser?.let {
                 AddServicesScreen(
                     orderId = orderId,
-                    clientId = 0L, // não usado mais — buscado pelo orderId
+                    clientId = 0L,
                     startDateTime = "",
                     onNavigateBack = { navController.popBackStack() },
                     onOrderFinished = {
@@ -119,15 +121,25 @@ fun AppNavigation(
             )
         }
 
+        // ── Manager / Master ───────────────────────────────────────────────
         composable(Screen.ManagerHome.route) {
-            ManagerHomeScreen(
-                onNavigateToClients = { navController.navigate(Screen.ManagerClients.route) },
-                onNavigateToEmployees = { navController.navigate(Screen.ManagerEmployees.route) },
-                onNavigateToServices = { navController.navigate(Screen.ManagerServices.route) },
-                onNavigateToProducts = { navController.navigate(Screen.ManagerProducts.route) },
-                onNavigateToOrders = { navController.navigate(Screen.ManagerOrders.route) },
-                onNavigateToReports = { navController.navigate(Screen.ManagerReports.route) }
-            )
+            currentUser?.let { user ->
+                ManagerHomeScreen(
+                    currentUser = user,
+                    onNavigateToClients = { navController.navigate(Screen.ManagerClients.route) },
+                    onNavigateToEmployees = { navController.navigate(Screen.ManagerEmployees.route) },
+                    onNavigateToServices = { navController.navigate(Screen.ManagerServices.route) },
+                    onNavigateToProducts = { navController.navigate(Screen.ManagerProducts.route) },
+                    onNavigateToOrders = { navController.navigate(Screen.ManagerOrders.route) },
+                    onNavigateToReports = { navController.navigate(Screen.ManagerReports.route) },
+                    onLogout = {
+                        currentUser = null
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
         }
 
         composable(Screen.ManagerClients.route) {

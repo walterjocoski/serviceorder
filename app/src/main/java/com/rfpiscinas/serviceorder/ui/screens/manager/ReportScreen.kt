@@ -18,7 +18,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.rfpiscinas.serviceorder.util.DateMaskTransformation
+import com.rfpiscinas.serviceorder.util.DateUtils
 import com.rfpiscinas.serviceorder.ui.viewmodel.ReportViewModel
 import java.util.Calendar
 
@@ -39,6 +43,18 @@ fun ReportScreen(
     val ordersForClient by viewModel.ordersForClient.collectAsState()
     val dateFrom by viewModel.dateFrom.collectAsState()
     val dateTo by viewModel.dateTo.collectAsState()
+    // Digit states for masked input — armazenam apenas dígitos
+    var dateFromDigits by remember { mutableStateOf(DateUtils.displayToDigits(viewModel.dateFrom.value)) }
+    var dateToDigits by remember { mutableStateOf(DateUtils.displayToDigits(viewModel.dateTo.value)) }
+    // Sincroniza dígitos quando ViewModel limpa os filtros externamente
+    LaunchedEffect(dateFrom) {
+        val d = DateUtils.displayToDigits(dateFrom)
+        if (dateFromDigits != d) dateFromDigits = d
+    }
+    LaunchedEffect(dateTo) {
+        val d = DateUtils.displayToDigits(dateTo)
+        if (dateToDigits != d) dateToDigits = d
+    }
     val clientSearch by viewModel.clientSearch.collectAsState()
     val filteredClients by viewModel.filteredClients.collectAsState()
 
@@ -65,11 +81,15 @@ fun ReportScreen(
     // DatePickers
     val cal = Calendar.getInstance()
     val fromPicker = DatePickerDialog(context, { _, y, m, d ->
-        viewModel.setDateFrom("${d.toString().padStart(2,'0')}/${(m+1).toString().padStart(2,'0')}/$y")
+        val dStr = "${d.toString().padStart(2,'0')}/${(m+1).toString().padStart(2,'0')}/$y"
+        dateFromDigits = DateUtils.displayToDigits(dStr)
+        viewModel.setDateFrom(dStr)
     }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
 
     val toPicker = DatePickerDialog(context, { _, y, m, d ->
-        viewModel.setDateTo("${d.toString().padStart(2,'0')}/${(m+1).toString().padStart(2,'0')}/$y")
+        val dStr = "${d.toString().padStart(2,'0')}/${(m+1).toString().padStart(2,'0')}/$y"
+        dateToDigits = DateUtils.displayToDigits(dStr)
+        viewModel.setDateTo(dStr)
     }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
 
     Scaffold(
@@ -276,8 +296,9 @@ fun ReportScreen(
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = dateFrom,
-                            onValueChange = { viewModel.setDateFrom(it) },
+                            value = dateFromDigits,
+                            onValueChange = { val v = DateUtils.filterDateDigits(it); dateFromDigits = v; viewModel.setDateFrom(DateUtils.digitsToDisplay(v)) },
+                            visualTransformation = DateMaskTransformation(),
                             label = { Text("De") },
                             placeholder = { Text("DD/MM/AAAA") },
                             leadingIcon = {
@@ -285,12 +306,14 @@ fun ReportScreen(
                                     Icon(Icons.Default.CalendarToday, null, tint = MaterialTheme.colorScheme.primary)
                                 }
                             },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            value = dateTo,
-                            onValueChange = { viewModel.setDateTo(it) },
+                            value = dateToDigits,
+                            onValueChange = { val v = DateUtils.filterDateDigits(it); dateToDigits = v; viewModel.setDateTo(DateUtils.digitsToDisplay(v)) },
+                            visualTransformation = DateMaskTransformation(),
                             label = { Text("Até") },
                             placeholder = { Text("DD/MM/AAAA") },
                             leadingIcon = {
@@ -298,6 +321,7 @@ fun ReportScreen(
                                     Icon(Icons.Default.CalendarToday, null, tint = MaterialTheme.colorScheme.primary)
                                 }
                             },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -367,16 +391,16 @@ private fun FilterCard(
         ) {
             Icon(icon, null,
                 tint = if (enabled) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.labelMedium,
                     color = if (enabled) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                 Text(summary, style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (hasValue) FontWeight.Bold else FontWeight.Normal,
                     color = if (!enabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            else if (hasValue) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    else if (hasValue) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (hasValue) {
@@ -386,7 +410,7 @@ private fun FilterCard(
             } else {
                 Icon(Icons.Default.ChevronRight, null,
                     tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
             }
         }
     }

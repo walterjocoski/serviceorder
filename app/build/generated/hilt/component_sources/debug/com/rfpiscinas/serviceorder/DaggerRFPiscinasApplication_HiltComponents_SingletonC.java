@@ -45,6 +45,7 @@ import com.rfpiscinas.serviceorder.ui.viewmodel.ReportViewModel;
 import com.rfpiscinas.serviceorder.ui.viewmodel.ReportViewModel_HiltModules_KeyModule_ProvideFactory;
 import com.rfpiscinas.serviceorder.ui.viewmodel.ServiceManagementViewModel;
 import com.rfpiscinas.serviceorder.ui.viewmodel.ServiceManagementViewModel_HiltModules_KeyModule_ProvideFactory;
+import com.rfpiscinas.serviceorder.util.SessionManager;
 import dagger.hilt.android.ActivityRetainedLifecycle;
 import dagger.hilt.android.ViewModelLifecycle;
 import dagger.hilt.android.internal.builders.ActivityComponentBuilder;
@@ -526,7 +527,7 @@ public final class DaggerRFPiscinasApplication_HiltComponents_SingletonC {
           return (T) new EmployeeManagementViewModel(singletonCImpl.userRepositoryProvider.get());
 
           case 6: // com.rfpiscinas.serviceorder.ui.viewmodel.LoginViewModel 
-          return (T) new LoginViewModel(singletonCImpl.userRepositoryProvider.get());
+          return (T) new LoginViewModel(singletonCImpl.userRepositoryProvider.get(), singletonCImpl.sessionManagerProvider.get());
 
           case 7: // com.rfpiscinas.serviceorder.ui.screens.employee.OrderDetailViewModel 
           return (T) new OrderDetailViewModel(singletonCImpl.serviceOrderRepositoryProvider.get());
@@ -632,6 +633,8 @@ public final class DaggerRFPiscinasApplication_HiltComponents_SingletonC {
 
     private Provider<UserRepository> userRepositoryProvider;
 
+    private Provider<SessionManager> sessionManagerProvider;
+
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
       initialize(applicationContextModuleParam);
@@ -666,6 +669,7 @@ public final class DaggerRFPiscinasApplication_HiltComponents_SingletonC {
       this.productRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<ProductRepository>(singletonCImpl, 3));
       this.serviceOrderRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<ServiceOrderRepository>(singletonCImpl, 4));
       this.userRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<UserRepository>(singletonCImpl, 5));
+      this.sessionManagerProvider = DoubleCheck.provider(new SwitchingProvider<SessionManager>(singletonCImpl, 6));
     }
 
     @Override
@@ -718,6 +722,9 @@ public final class DaggerRFPiscinasApplication_HiltComponents_SingletonC {
 
           case 5: // com.rfpiscinas.serviceorder.data.repository.UserRepository 
           return (T) new UserRepository(singletonCImpl.userDao());
+
+          case 6: // com.rfpiscinas.serviceorder.util.SessionManager 
+          return (T) new SessionManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

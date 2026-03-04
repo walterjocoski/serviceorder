@@ -2,20 +2,44 @@ package com.rfpiscinas.serviceorder.data.mock
 
 import com.rfpiscinas.serviceorder.data.model.*
 
+/**
+ * Senhas para os usuários seed:
+ *   Walter (MASTER):  admin123
+ *   Carlos (MANAGER): rf2024
+ *   João (EMPLOYEE):  rf2024
+ *   Maria (EMPLOYEE): rf2024
+ */
 object MockData {
+
+    // SHA-256 de "rf2024"
+    private const val PW_RF2024  = "cf47e3de70411667c16fda393726c8461ab6fcea1cb8857ab9258cbc7e0538ee"
+    // SHA-256 de "admin123"
+    private const val PW_ADMIN   = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"
+
+    val master = User(
+        id = 10, name = "Walter Jocoski", email = "walter@rfpiscinas.com",
+        passwordHash = PW_ADMIN,
+        phone = "(41) 99999-0000", address = "Curitiba - PR",
+        role = UserRole.MASTER, active = true, startDate = "01/01/2020"
+    )
 
     val employees = listOf(
         User(id = 1, name = "João Silva", email = "joao@rfpiscinas.com",
+            passwordHash = PW_RF2024,
             phone = "(11) 98765-1111", address = "Rua das Acácias, 100 - Vila Mariana, São Paulo - SP",
             role = UserRole.EMPLOYEE, active = true, startDate = "15/01/2023"),
         User(id = 2, name = "Maria Santos", email = "maria@rfpiscinas.com",
+            passwordHash = PW_RF2024,
             phone = "(11) 98765-2222", address = "Av. Rebouças, 200 - Pinheiros, São Paulo - SP",
             role = UserRole.EMPLOYEE, active = true, startDate = "20/03/2023")
     )
 
-    val manager = User(id = 3, name = "Carlos Gerente", email = "gerente@rfpiscinas.com",
+    val manager = User(
+        id = 3, name = "Carlos Gerente", email = "gerente@rfpiscinas.com",
+        passwordHash = PW_RF2024,
         phone = "(11) 98765-3333", address = "Rua Augusta, 300 - Consolação, São Paulo - SP",
-        role = UserRole.MANAGER, active = true, startDate = "10/01/2022")
+        role = UserRole.MANAGER, active = true, startDate = "10/01/2022"
+    )
 
     val clients = listOf(
         Client(id = 1, name = "Condomínio Jardim das Flores",
@@ -59,7 +83,7 @@ object MockData {
             employeeId = 1, employeeName = "João", status = OrderStatus.COMPLETED,
             startDateTime = "10/02/2024 08:00:00", endDateTime = "10/02/2024 10:00:00",
             items = listOf(
-                ServiceOrderItem(id = 1, service = services[0], observations = "Borda com muita sujeira acumulada",
+                ServiceOrderItem(id = 1, service = services[0], observations = "Borda com muita sujeira",
                     products = listOf(ServiceOrderProduct(1, products[0], 500.0))),
                 ServiceOrderItem(id = 2, service = services[1], observations = "",
                     products = listOf(ServiceOrderProduct(2, products[0], 300.0))),
@@ -72,7 +96,7 @@ object MockData {
             items = listOf(
                 ServiceOrderItem(id = 4, service = services[1], observations = "",
                     products = listOf(ServiceOrderProduct(3, products[0], 200.0))),
-                ServiceOrderItem(id = 5, service = services[4], observations = "Água com aspecto esverdeado",
+                ServiceOrderItem(id = 5, service = services[4], observations = "Água esverdeada",
                     products = listOf(ServiceOrderProduct(4, products[1], 150.0)))
             )),
         ServiceOrder(id = 3, clientId = 3, clientName = "Condomínio Parque das Águas",
@@ -82,17 +106,17 @@ object MockData {
             items = listOf(
                 ServiceOrderItem(id = 6, service = services[0], observations = ""),
                 ServiceOrderItem(id = 7, service = services[2], observations = ""),
-                ServiceOrderItem(id = 8, service = services[3], observations = "Filtro necessitava limpeza profunda"),
-                ServiceOrderItem(id = 9, service = services[5], observations = "pH ajustado para 7.4")
+                ServiceOrderItem(id = 8, service = services[3], observations = "Filtro obstruído"),
+                ServiceOrderItem(id = 9, service = services[5], observations = "pH 7.4")
             )),
         ServiceOrder(id = 4, clientId = 1, clientName = "Condomínio Jardim das Flores",
             clientAddress = "Rua das Flores, 123 - Jardim Paulista, São Paulo - SP",
             employeeId = 2, employeeName = "Maria", status = OrderStatus.COMPLETED,
             startDateTime = "11/02/2024 08:30:00", endDateTime = "11/02/2024 11:00:00",
             items = listOf(
-                ServiceOrderItem(id = 10, service = services[1], observations = "Tratamento de choque realizado",
+                ServiceOrderItem(id = 10, service = services[1], observations = "Tratamento de choque",
                     products = listOf(ServiceOrderProduct(5, products[0], 800.0), ServiceOrderProduct(6, products[1], 200.0))),
-                ServiceOrderItem(id = 11, service = services[5], observations = "pH estava em 6.8, ajustado para 7.2"),
+                ServiceOrderItem(id = 11, service = services[5], observations = "pH 6.8→7.2"),
                 ServiceOrderItem(id = 12, service = services[6], observations = "")
             )),
         ServiceOrder(id = 5, clientId = 3, clientName = "Condomínio Parque das Águas",
@@ -100,7 +124,7 @@ object MockData {
             employeeId = 2, employeeName = "Maria", status = OrderStatus.IN_PROGRESS,
             startDateTime = "15/02/2024 09:00:00", endDateTime = null,
             items = listOf(
-                ServiceOrderItem(id = 13, service = services[0], observations = "Borda apresentando excesso de algas"),
+                ServiceOrderItem(id = 13, service = services[0], observations = "Algas na borda"),
                 ServiceOrderItem(id = 14, service = services[4], observations = "",
                     products = listOf(ServiceOrderProduct(7, products[1], 250.0)))
             )),
@@ -116,4 +140,5 @@ object MockData {
 
     fun getActiveClients() = clients.filter { it.active }
     fun getActiveEmployees() = employees.filter { it.active }
+    fun getAllSeedUsers() = employees + manager + master
 }

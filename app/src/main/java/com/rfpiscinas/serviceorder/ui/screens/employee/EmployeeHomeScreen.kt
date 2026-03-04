@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -28,11 +29,13 @@ fun EmployeeHomeScreen(
     onCreateOrder: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onAddServices: (Long) -> Unit,
+    onLogout: () -> Unit = {},
     viewModel: EmployeeHomeViewModel = hiltViewModel()
 ) {
     val orders by viewModel.orders.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     var orderToCancel by remember { mutableStateOf<ServiceOrder?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUser.id) {
         viewModel.loadOrdersForEmployee(currentUser.id)
@@ -66,9 +69,19 @@ fun EmployeeHomeScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = { showLogoutDialog = true }) {
+                        Icon(
+                            Icons.Default.Logout,
+                            contentDescription = "Sair",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -185,6 +198,25 @@ fun EmployeeHomeScreen(
                 TextButton(onClick = { orderToCancel = null }) {
                     Text("Voltar")
                 }
+            }
+        )
+    }
+
+    // Logout dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            icon = { Icon(Icons.Default.Logout, null) },
+            title = { Text("Sair do sistema") },
+            text = { Text("Deseja encerrar a sessão?") },
+            confirmButton = {
+                Button(
+                    onClick = { showLogoutDialog = false; onLogout() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Sair") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancelar") }
             }
         )
     }

@@ -35,9 +35,8 @@ object DatabaseModule {
         val existingUsers = db.userDao().getByEmail("gerente@rfpiscinas.com")
         if (existingUsers != null) return // Already seeded
 
-        // Insert users
-        val allUsers = MockData.employees + MockData.manager
-        db.userDao().insertAll(allUsers.map { UserEntity.fromModel(it) })
+        // Insert users (employees + manager + master/Walter)
+        db.userDao().insertAll(MockData.getAllSeedUsers().map { UserEntity.fromModel(it) })
 
         // Insert clients
         db.clientDao().insertAll(MockData.clients.map { ClientEntity.fromModel(it) })

@@ -109,4 +109,38 @@ object DateUtils {
             datetime
         }
     }
+
+    // ── Funções para máscara de data (uso com DateMaskTransformation) ─────────
+
+    /**
+     * Filtra a entrada de um campo de data: mantém apenas dígitos, limita a 8.
+     * O estado do campo deve armazenar SOMENTE dígitos.
+     * A exibição com barras é feita por DateMaskTransformation.
+     *
+     * Uso: onValueChange = { field = DateUtils.filterDateDigits(it) }
+     */
+    fun filterDateDigits(input: String): String =
+        input.filter { it.isDigit() }.take(8)
+
+    /**
+     * Converte dígitos puros para string DD/MM/YYYY (ou parcial).
+     * Ex: "30011993" → "30/01/1993"  |  "3001" → "30/01"
+     */
+    fun digitsToDisplay(digits: String): String {
+        val d = digits.filter { it.isDigit() }.take(8)
+        return buildString {
+            d.forEachIndexed { i, ch ->
+                if (i == 2 || i == 4) append('/')
+                append(ch)
+            }
+        }
+    }
+
+    /**
+     * Converte uma string DD/MM/YYYY (display) de volta para 8 dígitos puros.
+     * Ex: "30/01/1993" → "30011993"  |  "" → ""
+     */
+    fun displayToDigits(display: String): String =
+        display.filter { it.isDigit() }.take(8)
+
 }

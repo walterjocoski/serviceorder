@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.rfpiscinas.serviceorder.util.DateMaskTransformation
+import com.rfpiscinas.serviceorder.util.DateUtils
 import com.rfpiscinas.serviceorder.data.model.OrderStatus
 import com.rfpiscinas.serviceorder.ui.screens.employee.OrderCard
 import com.rfpiscinas.serviceorder.ui.viewmodel.AllOrdersViewModel
@@ -250,18 +252,20 @@ private fun FilterPanel(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = localFrom,
-                    onValueChange = { localFrom = it; onDateFromChange(it) },
+                    onValueChange = { val v = DateUtils.filterDateDigits(it); localFrom = v; onDateFromChange(DateUtils.digitsToDisplay(v)) },
+                    visualTransformation = DateMaskTransformation(),
                     label = { Text("De") },
-                    placeholder = { Text("2024-01-01") },
+                    placeholder = { Text("DD/MM/AAAA") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = localTo,
-                    onValueChange = { localTo = it; onDateToChange(it) },
+                    onValueChange = { val v = DateUtils.filterDateDigits(it); localTo = v; onDateToChange(DateUtils.digitsToDisplay(v)) },
+                    visualTransformation = DateMaskTransformation(),
                     label = { Text("Até") },
-                    placeholder = { Text("2024-12-31") },
+                    placeholder = { Text("DD/MM/AAAA") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)

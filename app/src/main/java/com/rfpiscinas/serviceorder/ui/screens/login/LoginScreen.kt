@@ -1,6 +1,5 @@
 package com.rfpiscinas.serviceorder.ui.screens.login
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -15,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,10 +21,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.rfpiscinas.serviceorder.R
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.rfpiscinas.serviceorder.data.model.User
 import com.rfpiscinas.serviceorder.ui.viewmodel.LoginViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun LoginScreen(
@@ -36,17 +33,15 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val loginResult by viewModel.loginResult.collectAsState()
-    
-    // Handle successful login
+
     LaunchedEffect(loginResult) {
-        loginResult?.let { user ->
-            onLoginSuccess(user)
-        }
+        loginResult?.let { user -> onLoginSuccess(user) }
     }
-    
+
     val focusManager = LocalFocusManager.current
 
     Surface(
@@ -56,38 +51,32 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo/Título
+            // Logo / título
             Text(
-                text = stringResource(R.string.login_title),
-                style = MaterialTheme.typography.displayMedium,
+                "RF Piscinas",
+                style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.login_subtitle),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                "Limpeza e Manutenção de Piscinas",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            // Campo de E-mail
+            Spacer(Modifier.height(48.dp))
+
+            // E-mail
             OutlinedTextField(
                 value = email,
-                onValueChange = { 
-                    email = it
-                },
-                label = { Text(stringResource(R.string.email)) },
-                leadingIcon = {
-                    Icon(Icons.Default.Email, contentDescription = null)
-                },
+                onValueChange = { email = it; viewModel.clearError() },
+                label = { Text("E-mail") },
+                leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -96,58 +85,45 @@ fun LoginScreen(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                isError = errorMessage != null
+                isError = errorMessage != null,
+                modifier = Modifier.fillMaxWidth()
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Campo de Senha
+
+            Spacer(Modifier.height(16.dp))
+
+            // Senha
             OutlinedTextField(
                 value = password,
-                onValueChange = { 
-                    password = it
-                },
-                label = { Text(stringResource(R.string.password)) },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = null)
-                },
+                onValueChange = { password = it; viewModel.clearError() },
+                label = { Text("Senha") },
+                leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            imageVector = if (passwordVisible) 
-                                Icons.Default.Visibility 
-                            else 
-                                Icons.Default.VisibilityOff,
-                            contentDescription = if (passwordVisible) 
-                                "Ocultar senha" 
-                            else 
-                                "Mostrar senha"
+                            if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            if (passwordVisible) "Ocultar senha" else "Mostrar senha"
                         )
                     }
                 },
-                visualTransformation = if (passwordVisible) 
-                    VisualTransformation.None 
-                else 
-                    PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
-                    onDone = { 
+                    onDone = {
                         focusManager.clearFocus()
-                        // Trigger login
+                        viewModel.login(email, password)
                     }
                 ),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                isError = errorMessage != null
+                isError = errorMessage != null,
+                modifier = Modifier.fillMaxWidth()
             )
-            
+
             // Mensagem de erro
             if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = errorMessage!!,
                     color = MaterialTheme.colorScheme.error,
@@ -155,74 +131,34 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Esqueci minha senha
-            TextButton(
-                onClick = { /* TODO: Implementar recuperação de senha */ },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text(stringResource(R.string.forgot_password))
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Botão de Login
+
+            Spacer(Modifier.height(32.dp))
+
+            // Botão entrar
             Button(
-                onClick = {
-                    viewModel.login(email, password)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                onClick = { viewModel.login(email, password) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty()
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
                     )
                 } else {
-                    Text(
-                        text = stringResource(R.string.login),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text("Entrar", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Informações de teste
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Dados para Teste:",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Funcionário: funcionario@rfpiscinas.com",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "Gerente: gerente@rfpiscinas.com",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "Senha: qualquer",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
+
+            Spacer(Modifier.height(48.dp))
+
+            // Versão
+            Text(
+                "v1.0 · RF Piscinas",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
