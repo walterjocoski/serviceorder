@@ -16,6 +16,12 @@ interface ClientDao {
     @Query("SELECT * FROM clients WHERE id = :id")
     suspend fun getById(id: Long): ClientEntity?
 
+    @Query("SELECT * FROM clients WHERE LOWER(email) = LOWER(:email) LIMIT 1")
+    suspend fun getByEmail(email: String): ClientEntity?
+
+    @Query("SELECT * FROM clients WHERE REPLACE(REPLACE(REPLACE(REPLACE(cpfCnpj,'.',\'\'),'-',\'\'),'/',\'\'),' ',\'\') = :digits LIMIT 1")
+    suspend fun getByCpfCnpj(digits: String): ClientEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(client: ClientEntity): Long
 

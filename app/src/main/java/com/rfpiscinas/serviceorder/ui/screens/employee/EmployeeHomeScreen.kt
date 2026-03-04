@@ -6,8 +6,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,9 +53,16 @@ fun EmployeeHomeScreen(
 
     // Separar por status
     val inProgressOrders = orders.filter { it.status == OrderStatus.IN_PROGRESS }
-    val createdOrders = orders.filter { it.status == OrderStatus.CREATED }
-    val completedOrders = orders.filter { it.status == OrderStatus.COMPLETED }
-    val cancelledOrders = orders.filter { it.status == OrderStatus.CANCELLED }
+    val createdOrders    = orders.filter { it.status == OrderStatus.CREATED }
+    val completedOrders  = orders.filter { it.status == OrderStatus.COMPLETED }
+    val cancelledOrders  = orders.filter { it.status == OrderStatus.CANCELLED }
+
+    // Paginação manual: finalizadas e canceladas são as listas mais longas
+    val pageSize = 10
+    var completedPage by remember { mutableIntStateOf(1) }
+    var cancelledPage by remember { mutableIntStateOf(1) }
+    val completedVisible = completedOrders.take(completedPage * pageSize)
+    val cancelledVisible = cancelledOrders.take(cancelledPage * pageSize)
 
     Scaffold(
         topBar = {
@@ -143,23 +151,41 @@ fun EmployeeHomeScreen(
 
                 // Seção: Finalizadas
                 if (completedOrders.isNotEmpty()) {
-                    item { SectionHeader("Finalizadas", StatusCompleted) }
-                    items(completedOrders) { order ->
-                        OrderCard(
-                            order = order,
-                            onClick = { onOrderClick(order.id) }
-                        )
+                    item { SectionHeader("Finalizadas (${completedOrders.size})", StatusCompleted) }
+                    items(completedVisible) { order ->
+                        OrderCard(order = order, onClick = { onOrderClick(order.id) })
+                    }
+                    if (completedVisible.size < completedOrders.size) {
+                        item {
+                            TextButton(
+                                onClick = { completedPage++ },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Carregar mais (${completedOrders.size - completedVisible.size} restantes)")
+                            }
+                        }
                     }
                 }
 
                 // Seção: Canceladas
                 if (cancelledOrders.isNotEmpty()) {
-                    item { SectionHeader("Canceladas", StatusCancelled) }
-                    items(cancelledOrders) { order ->
-                        OrderCard(
-                            order = order,
-                            onClick = { onOrderClick(order.id) }
-                        )
+                    item { SectionHeader("Canceladas (${cancelledOrders.size})", StatusCancelled) }
+                    items(cancelledVisible) { order ->
+                        OrderCard(order = order, onClick = { onOrderClick(order.id) })
+                    }
+                    if (cancelledVisible.size < cancelledOrders.size) {
+                        item {
+                            TextButton(
+                                onClick = { cancelledPage++ },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Carregar mais (${cancelledOrders.size - cancelledVisible.size} restantes)")
+                            }
+                        }
                     }
                 }
 

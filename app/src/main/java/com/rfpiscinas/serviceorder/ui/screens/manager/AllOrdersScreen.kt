@@ -41,6 +41,11 @@ fun AllOrdersScreen(
     val dateTo by viewModel.dateTo.collectAsState()
 
     var showFilterPanel by remember { mutableStateOf(false) }
+
+    // Paginação manual: 15 itens por página
+    val pageSize = 15
+    var visibleCount by remember(filteredOrders) { mutableIntStateOf(pageSize) }
+    val visibleOrders = filteredOrders.take(visibleCount)
     var showStatusDialog by remember { mutableStateOf(false) }
     var showEmployeeDialog by remember { mutableStateOf(false) }
     var showClientDialog by remember { mutableStateOf(false) }
@@ -155,8 +160,24 @@ fun AllOrdersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredOrders, key = { it.id }) { order ->
+                    items(visibleOrders, key = { it.id }) { order ->
                         OrderCard(order = order, onClick = { onOrderClick(order.id) })
+                    }
+                    if (visibleOrders.size < filteredOrders.size) {
+                        item {
+                            TextButton(
+                                onClick = { visibleCount += pageSize },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text("Carregar mais (${filteredOrders.size - visibleOrders.size} restantes)")
+                            }
+                        }
                     }
                     item { Spacer(Modifier.height(16.dp)) }
                 }

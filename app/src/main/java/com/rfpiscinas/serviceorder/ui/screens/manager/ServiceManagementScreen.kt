@@ -26,6 +26,10 @@ fun ServiceManagementScreen(
     val services by viewModel.services.collectAsState()
     val message by viewModel.message.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+
+    val pageSize = 20
+    var servicesVisible by remember(services) { mutableIntStateOf(pageSize) }
+    val visibleServices = services.take(servicesVisible)
     var editingService by remember { mutableStateOf<Service?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -82,12 +86,24 @@ fun ServiceManagementScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(services, key = { it.id }) { service ->
+                items(visibleServices, key = { it.id }) { service ->
                     ServiceCard(
                         service = service,
                         onEdit = { editingService = service },
                         onToggleActive = { viewModel.toggleActive(service) }
                     )
+                }
+                if (visibleServices.size < services.size) {
+                    item {
+                        TextButton(
+                            onClick = { servicesVisible += pageSize },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Carregar mais (${services.size - visibleServices.size} restantes)")
+                        }
+                    }
                 }
                 item { Spacer(Modifier.height(80.dp)) }
             }

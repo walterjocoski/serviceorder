@@ -18,6 +18,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rfpiscinas.serviceorder.data.model.Client
 import com.rfpiscinas.serviceorder.ui.viewmodel.ClientManagementViewModel
+import com.rfpiscinas.serviceorder.util.CpfCnpjMaskTransformation
+import com.rfpiscinas.serviceorder.util.CpfCnpjUtils
+import com.rfpiscinas.serviceorder.util.PhoneMaskTransformation
+import com.rfpiscinas.serviceorder.util.PhoneUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,11 +32,25 @@ fun ClientManagementScreen(
     val clients by viewModel.clients.collectAsState()
     val message by viewModel.message.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // Paginação manual
+    val pageSize = 20
+    var clientsVisible by remember(clients) { mutableIntStateOf(pageSize) }
+    val visibleClients = clients.take(clientsVisible)
     var editingClient by remember { mutableStateOf<Client?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Erros de duplicidade vindos do banco (e-mail e CPF/CNPJ)
+    val emailError by viewModel.emailError.collectAsState()
+    val cpfCnpjError by viewModel.cpfCnpjError.collectAsState()
+
     LaunchedEffect(message) {
         message?.let {
+            // Fecha o formulário antes de exibir o snackbar (salvo com sucesso)
+            if (showAddDialog || editingClient != null) {
+                showAddDialog = false
+                editingClient = null
+            }
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessage()
         }
@@ -89,12 +107,24 @@ fun ClientManagementScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(clients, key = { it.id }) { client ->
+                items(visibleClients, key = { it.id }) { client ->
                     ClientCard(
                         client = client,
                         onEdit = { editingClient = client },
-                        onToggleActive = { viewModel.updateClient(client.copy(active = !client.active)) }
+                        onToggleActive = { viewModel.toggleActive(client) }
                     )
+                }
+                if (visibleClients.size < clients.size) {
+                    item {
+                        TextButton(
+                            onClick = { clientsVisible += pageSize },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Carregar mais (${clients.size - visibleClients.size} restantes)")
+                        }
+                    }
                 }
                 item { Spacer(Modifier.height(80.dp)) }
             }
@@ -104,16 +134,22 @@ fun ClientManagementScreen(
     if (showAddDialog || editingClient != null) {
         ClientFormDialog(
             client = editingClient,
-            onDismiss = { showAddDialog = false; editingClient = null },
-            onSave = { client ->
-                if (editingClient != null) viewModel.updateClient(client)
-                else viewModel.addClient(client)
+            emailError = emailError,
+            cpfCnpjError = cpfCnpjError,
+            onDismiss = {
                 showAddDialog = false
                 editingClient = null
+                viewModel.clearErrors()
+            },
+            onSave = { client, cpfCnpjDigits ->
+                if (editingClient != null) viewModel.updateClient(client, cpfCnpjDigits)
+                else viewModel.addClient(client, cpfCnpjDigits)
             }
         )
     }
 }
+
+// ─── ClientCard ────────────────────────────────────────────────────────────
 
 @Composable
 fun ClientCard(client: Client, onEdit: () -> Unit, onToggleActive: () -> Unit) {
@@ -201,19 +237,52 @@ fun ClientCard(client: Client, onEdit: () -> Unit, onToggleActive: () -> Unit) {
     }
 }
 
-@Composable
-fun ClientFormDialog(client: Client?, onDismiss: () -> Unit, onSave: (Client) -> Unit) {
-    var name by remember { mutableStateOf(client?.name ?: "") }
-    var cpfCnpj by remember { mutableStateOf(client?.cpfCnpj ?: "") }
-    var address by remember { mutableStateOf(client?.address ?: "") }
-    var phone by remember { mutableStateOf(client?.phone ?: "") }
-    var email by remember { mutableStateOf(client?.email ?: "") }
+// ─── ClientFormDialog ──────────────────────────────────────────────────────
 
-    val isValid = name.isNotBlank() && cpfCnpj.isNotBlank() && address.isNotBlank() && phone.isNotBlank()
+@Composable
+fun ClientFormDialog(
+    client: Client?,
+    emailError: String?,
+    cpfCnpjError: String?,
+    onDismiss: () -> Unit,
+    onSave: (Client, String) -> Unit    // (cliente com display values, cpfCnpjDigits)
+) {
+    val isEditing = client != null
+
+    // ── Estado: dígitos brutos (sem máscara) ──────────────────────────────
+    var name       by remember { mutableStateOf(client?.name ?: "") }
+    // CPF/CNPJ: armazena só dígitos; máscara é visual
+    var cpfDigits  by remember { mutableStateOf(CpfCnpjUtils.filterDigits(client?.cpfCnpj ?: "")) }
+    var address    by remember { mutableStateOf(client?.address ?: "") }
+    // Telefone: armazena só dígitos; máscara é visual
+    var phoneDigits by remember { mutableStateOf(PhoneUtils.filterDigits(client?.phone ?: "")) }
+    var email      by remember { mutableStateOf(client?.email ?: "") }
+
+    // ── Validações locais (formato) ───────────────────────────────────────
+    val cpfCnpjFormatError = CpfCnpjUtils.errorMessage(cpfDigits)
+    // Erro real = formato inválido OU duplicidade do banco
+    val cpfCnpjFieldError  = cpfCnpjFormatError ?: cpfCnpjError
+
+    val phoneError = when {
+        phoneDigits.isEmpty() -> null  // obrigatoriedade tratada no isValid
+        phoneDigits.length < 10 -> "Telefone incompleto"
+        else -> null
+    }
+
+    val emailFormatError = if (email.isNotEmpty() && !email.contains('@')) "E-mail inválido" else null
+    val emailFieldError  = emailFormatError ?: emailError
+
+    val isValid = name.isNotBlank()
+            && cpfDigits.isNotBlank()
+            && cpfCnpjFormatError == null    // formato OK
+            && address.isNotBlank()
+            && phoneDigits.length >= 10       // mínimo telefone fixo
+            && phoneError == null
+            && emailFormatError == null
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (client != null) "Editar Cliente" else "Novo Cliente") },
+        title = { Text(if (isEditing) "Editar Cliente" else "Novo Cliente") },
         text = {
             Column(
                 modifier = Modifier
@@ -221,33 +290,70 @@ fun ClientFormDialog(client: Client?, onDismiss: () -> Unit, onSave: (Client) ->
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // ── Nome ──────────────────────────────────────────────────
                 OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text("Nome *") }, singleLine = true,
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nome *") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // ── CPF / CNPJ com máscara e validação ───────────────────
                 OutlinedTextField(
-                    value = cpfCnpj, onValueChange = { cpfCnpj = it },
-                    label = { Text("CPF / CNPJ *") }, singleLine = true,
+                    value = cpfDigits,
+                    onValueChange = { cpfDigits = CpfCnpjUtils.filterDigits(it) },
+                    visualTransformation = CpfCnpjMaskTransformation(),
+                    label = { Text("CPF / CNPJ *") },
+                    placeholder = { Text("000.000.000-00") },
+                    isError = cpfCnpjFieldError != null,
+                    supportingText = if (cpfCnpjFieldError != null) {
+                        { Text(cpfCnpjFieldError) }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // ── Endereço ──────────────────────────────────────────────
                 OutlinedTextField(
-                    value = address, onValueChange = { address = it },
-                    label = { Text("Endereço *") }, minLines = 2, maxLines = 3,
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Endereço *") },
+                    minLines = 2, maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // ── Telefone com máscara ──────────────────────────────────
                 OutlinedTextField(
-                    value = phone, onValueChange = { phone = it },
-                    label = { Text("Telefone *") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    value = phoneDigits,
+                    onValueChange = { phoneDigits = PhoneUtils.filterDigits(it) },
+                    visualTransformation = PhoneMaskTransformation(),
+                    label = { Text("Telefone *") },
+                    placeholder = { Text("(41) 99999-0000") },
+                    isError = phoneError != null,
+                    supportingText = if (phoneError != null) {
+                        { Text(phoneError) }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // ── E-mail com validação de duplicidade ───────────────────
                 OutlinedTextField(
-                    value = email, onValueChange = { email = it },
-                    label = { Text("E-mail") }, singleLine = true,
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("E-mail") },
+                    isError = emailFieldError != null,
+                    supportingText = if (emailFieldError != null) {
+                        { Text(emailFieldError) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 Text(
                     "* Campos obrigatórios",
                     style = MaterialTheme.typography.labelSmall,
@@ -258,16 +364,35 @@ fun ClientFormDialog(client: Client?, onDismiss: () -> Unit, onSave: (Client) ->
         confirmButton = {
             Button(
                 onClick = {
+                    // Salva o CPF/CNPJ no formato visual (com máscara) para exibição
+                    // Passa os dígitos brutos para validação de duplicidade no VM
+                    val displayCpfCnpj = buildString {
+                        cpfDigits.forEachIndexed { i, ch ->
+                            val isCnpj = cpfDigits.length > 11
+                            if (!isCnpj) {
+                                if (i == 3 || i == 6) append('.')
+                                if (i == 9) append('-')
+                            } else {
+                                if (i == 2 || i == 5) append('.')
+                                if (i == 8) append('/')
+                                if (i == 12) append('-')
+                            }
+                            append(ch)
+                        }
+                    }
+                    val displayPhone = PhoneUtils.digitsToDisplay(phoneDigits)
+
                     onSave(
                         Client(
                             id = client?.id ?: 0,
                             name = name.trim(),
-                            cpfCnpj = cpfCnpj.trim(),
+                            cpfCnpj = displayCpfCnpj,
                             address = address.trim(),
-                            phone = phone.trim(),
-                            email = email.trim(),
+                            phone = displayPhone,
+                            email = email.trim().lowercase(),
                             active = client?.active ?: true
-                        )
+                        ),
+                        cpfDigits  // dígitos puros para checar duplicidade no banco
                     )
                 },
                 enabled = isValid

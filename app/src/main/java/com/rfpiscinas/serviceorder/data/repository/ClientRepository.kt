@@ -27,4 +27,18 @@ class ClientRepository @Inject constructor(
     suspend fun update(client: Client) = clientDao.update(ClientEntity.fromModel(client))
 
     suspend fun delete(client: Client) = clientDao.delete(ClientEntity.fromModel(client))
+
+    /** Retorna true se já existe outro cliente com esse e-mail (exclui excludeId ao editar). */
+    suspend fun isEmailTaken(email: String, excludeId: Long = -1L): Boolean {
+        if (email.isBlank()) return false
+        val found = clientDao.getByEmail(email.trim()) ?: return false
+        return found.id != excludeId
+    }
+
+    /** Retorna true se já existe outro cliente com esse CPF/CNPJ (exclui excludeId ao editar). */
+    suspend fun isCpfCnpjTaken(digits: String, excludeId: Long = -1L): Boolean {
+        if (digits.isBlank()) return false
+        val found = clientDao.getByCpfCnpj(digits) ?: return false
+        return found.id != excludeId
+    }
 }

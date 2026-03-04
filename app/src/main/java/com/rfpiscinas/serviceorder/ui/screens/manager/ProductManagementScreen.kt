@@ -27,6 +27,10 @@ fun ProductManagementScreen(
     val products by viewModel.products.collectAsState()
     val message by viewModel.message.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+
+    val pageSize = 20
+    var productsVisible by remember(products) { mutableIntStateOf(pageSize) }
+    val visibleProducts = products.take(productsVisible)
     var editingProduct by remember { mutableStateOf<Product?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -79,12 +83,24 @@ fun ProductManagementScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(products, key = { it.id }) { product ->
+                items(visibleProducts, key = { it.id }) { product ->
                     ProductCard(
                         product = product,
                         onEdit = { editingProduct = product },
                         onToggleActive = { viewModel.toggleActive(product) }
                     )
+                }
+                if (visibleProducts.size < products.size) {
+                    item {
+                        TextButton(
+                            onClick = { productsVisible += pageSize },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Carregar mais (${products.size - visibleProducts.size} restantes)")
+                        }
+                    }
                 }
                 item { Spacer(Modifier.height(80.dp)) }
             }

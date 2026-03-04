@@ -326,6 +326,110 @@ public final class ClientDao_Impl implements ClientDao {
     }, $completion);
   }
 
+  @Override
+  public Object getByEmail(final String email,
+      final Continuation<? super ClientEntity> $completion) {
+    final String _sql = "SELECT * FROM clients WHERE LOWER(email) = LOWER(?) LIMIT 1";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, email);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<ClientEntity>() {
+      @Override
+      @Nullable
+      public ClientEntity call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
+          final int _cursorIndexOfCpfCnpj = CursorUtil.getColumnIndexOrThrow(_cursor, "cpfCnpj");
+          final int _cursorIndexOfAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "address");
+          final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
+          final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
+          final int _cursorIndexOfActive = CursorUtil.getColumnIndexOrThrow(_cursor, "active");
+          final ClientEntity _result;
+          if (_cursor.moveToFirst()) {
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final String _tmpName;
+            _tmpName = _cursor.getString(_cursorIndexOfName);
+            final String _tmpCpfCnpj;
+            _tmpCpfCnpj = _cursor.getString(_cursorIndexOfCpfCnpj);
+            final String _tmpAddress;
+            _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
+            final String _tmpPhone;
+            _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
+            final String _tmpEmail;
+            _tmpEmail = _cursor.getString(_cursorIndexOfEmail);
+            final boolean _tmpActive;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfActive);
+            _tmpActive = _tmp != 0;
+            _result = new ClientEntity(_tmpId,_tmpName,_tmpCpfCnpj,_tmpAddress,_tmpPhone,_tmpEmail,_tmpActive);
+          } else {
+            _result = null;
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object getByCpfCnpj(final String digits,
+      final Continuation<? super ClientEntity> $completion) {
+    final String _sql = "SELECT * FROM clients WHERE REPLACE(REPLACE(REPLACE(REPLACE(cpfCnpj,'.',''),'-',''),'/',''),' ','') = ? LIMIT 1";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, digits);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<ClientEntity>() {
+      @Override
+      @Nullable
+      public ClientEntity call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
+          final int _cursorIndexOfCpfCnpj = CursorUtil.getColumnIndexOrThrow(_cursor, "cpfCnpj");
+          final int _cursorIndexOfAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "address");
+          final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
+          final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
+          final int _cursorIndexOfActive = CursorUtil.getColumnIndexOrThrow(_cursor, "active");
+          final ClientEntity _result;
+          if (_cursor.moveToFirst()) {
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final String _tmpName;
+            _tmpName = _cursor.getString(_cursorIndexOfName);
+            final String _tmpCpfCnpj;
+            _tmpCpfCnpj = _cursor.getString(_cursorIndexOfCpfCnpj);
+            final String _tmpAddress;
+            _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
+            final String _tmpPhone;
+            _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
+            final String _tmpEmail;
+            _tmpEmail = _cursor.getString(_cursorIndexOfEmail);
+            final boolean _tmpActive;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfActive);
+            _tmpActive = _tmp != 0;
+            _result = new ClientEntity(_tmpId,_tmpName,_tmpCpfCnpj,_tmpAddress,_tmpPhone,_tmpEmail,_tmpActive);
+          } else {
+            _result = null;
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
   @NonNull
   public static List<Class<?>> getRequiredConverters() {
     return Collections.emptyList();

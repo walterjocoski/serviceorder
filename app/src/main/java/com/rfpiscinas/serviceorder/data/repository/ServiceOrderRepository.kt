@@ -163,4 +163,34 @@ class ServiceOrderRepository @Inject constructor(
         serviceOrderDao.getByClient(clientId).map { entities ->
             entities.map { loadFullOrder(it) }
         }
+
+    /** Substitui os itens da OS sem mudar o status (para salvar edições em andamento). */
+    suspend fun updateOrderItems(orderId: Long, items: List<ServiceOrderItem>) {
+        serviceOrderDao.deleteProductsByOrderId(orderId)
+        serviceOrderDao.deleteItemsByOrderId(orderId)
+        for (item in items) {
+            val itemId = serviceOrderDao.insertItem(
+                ServiceOrderItemEntity(
+                    serviceOrderId = orderId,
+                    serviceId = item.service.id,
+                    serviceName = item.service.name,
+                    serviceType = item.service.type,
+                    serviceUsesProducts = item.service.usesProducts,
+                    observations = item.observations
+                )
+            )
+            for (product in item.products) {
+                serviceOrderDao.insertProduct(
+                    ServiceOrderProductEntity(
+                        serviceOrderItemId = itemId,
+                        productId = product.product.id,
+                        productName = product.product.name,
+                        productUnitMeasure = product.product.unitMeasure,
+                        quantity = product.quantity
+                    )
+                )
+            }
+        }
+    }
+
 }

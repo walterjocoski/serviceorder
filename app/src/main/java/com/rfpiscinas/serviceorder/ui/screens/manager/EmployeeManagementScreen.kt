@@ -24,6 +24,8 @@ import com.rfpiscinas.serviceorder.data.model.User
 import com.rfpiscinas.serviceorder.data.model.UserRole
 import com.rfpiscinas.serviceorder.ui.viewmodel.EmployeeManagementViewModel
 import com.rfpiscinas.serviceorder.util.DateMaskTransformation
+import com.rfpiscinas.serviceorder.util.PhoneMaskTransformation
+import com.rfpiscinas.serviceorder.util.PhoneUtils
 import com.rfpiscinas.serviceorder.util.DateUtils
 import java.util.Calendar
 
@@ -36,6 +38,11 @@ fun EmployeeManagementScreen(
     val employees by viewModel.employees.collectAsState()
     val message by viewModel.message.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // Paginação manual
+    val pageSize = 20
+    var employeesVisible by remember(employees) { mutableIntStateOf(pageSize) }
+    val visibleEmployees = employees.take(employeesVisible)
     var editingEmployee by remember { mutableStateOf<User?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -85,7 +92,7 @@ fun EmployeeManagementScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(employees, key = { it.id }) { employee ->
+                items(visibleEmployees, key = { it.id }) { employee ->
                     EmployeeCard(
                         employee = employee,
                         onEdit = { editingEmployee = employee },
@@ -93,6 +100,18 @@ fun EmployeeManagementScreen(
                             viewModel.updateEmployee(employee.copy(active = !employee.active))
                         }
                     )
+                }
+                if (visibleEmployees.size < employees.size) {
+                    item {
+                        TextButton(
+                            onClick = { employeesVisible += pageSize },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.ExpandMore, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Carregar mais (${employees.size - visibleEmployees.size} restantes)")
+                        }
+                    }
                 }
                 item { Spacer(Modifier.height(80.dp)) }
             }
@@ -193,7 +212,19 @@ fun EmployeeCard(employee: User, onEdit: () -> Unit, onToggleActive: () -> Unit)
     }
 }
 
-@Composable
+
+// ── Força de senha ─────────────────────────────────────────────────────────
+
+private fun calcPasswordScore(password: String): Int {
+    var score = 0
+    if (password.length >= 8)                       score++
+    if (password.length >= 12)                      score++
+    if (password.any { it.isUpperCase() })          score++
+    if (password.any { it.isDigit() })              score++
+    if (password.any { !it.isLetterOrDigit() })     score++
+    return minOf(score, 4)
+}
+
 fun EmployeeFormDialog(
     employee: User?,
     onDismiss: () -> Unit,
@@ -204,7 +235,8 @@ fun EmployeeFormDialog(
 
     var name by remember { mutableStateOf(employee?.name ?: "") }
     var email by remember { mutableStateOf(employee?.email ?: "") }
-    var phone by remember { mutableStateOf(employee?.phone ?: "") }
+    // Telefone: armazena dígitos; PhoneMaskTransformation exibe a máscara
+    var phoneDigits by remember { mutableStateOf(PhoneUtils.filterDigits(employee?.phone ?: "")) }
     var address by remember { mutableStateOf(employee?.address ?: "") }
     // startDate armazena apenas dígitos; DateMaskTransformation exibe DD/MM/YYYY
     var startDate by remember { mutableStateOf(DateUtils.displayToDigits(employee?.startDate ?: "")) }
@@ -219,7 +251,7 @@ fun EmployeeFormDialog(
     val passwordError = if (password.isNotEmpty() && password.length < 6) "Mínimo 6 caracteres" else null
     // Erro do campo confirmação: valida se coincidem (só exibe quando confirmPassword foi tocado)
     val confirmError = if (confirmPassword.isNotEmpty() && password != confirmPassword) "Senhas não coincidem" else null
-    val isValid = name.isNotBlank() && email.isNotBlank() && phone.isNotBlank() && passwordOk
+    val isValid = name.isNotBlank() && email.isNotBlank() && phoneDigits.length >= 10 && passwordOk
 
     // DatePickerDialog para data de início
     val cal = Calendar.getInstance()
@@ -243,10 +275,16 @@ fun EmployeeFormDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth())
 
-                OutlinedTextField(value = phone, onValueChange = { phone = it },
-                    label = { Text("Telefone *") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = phoneDigits,
+                    onValueChange = { phoneDigits = PhoneUtils.filterDigits(it) },
+                    visualTransformation = PhoneMaskTransformation(),
+                    label = { Text("Telefone *") },
+                    placeholder = { Text("(41) 99999-0000") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 OutlinedTextField(value = address, onValueChange = { address = it },
                     label = { Text("Endereço") }, minLines = 2, maxLines = 3,
@@ -295,6 +333,54 @@ fun EmployeeFormDialog(
                     supportingText = if (passwordError != null) {{ Text(passwordError) }} else null,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Barra de força da senha (inline)
+                if (password.isNotEmpty()) {
+                    val score = calcPasswordScore(password)
+                    val (label, barColor) = when (score) {
+                        0, 1 -> "Muito fraca" to MaterialTheme.colorScheme.error
+                        2    -> "Fraca"       to androidx.compose.ui.graphics.Color(0xFFE65100)
+                        3    -> "Boa"         to androidx.compose.ui.graphics.Color(0xFF1565C0)
+                        else -> "Forte"       to androidx.compose.ui.graphics.Color(0xFF2E7D32)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = barColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                buildString {
+                                    if (password.length < 8)                    append("8+ chars  ")
+                                    if (!password.any { it.isUpperCase() })     append("Maiúsc.  ")
+                                    if (!password.any { it.isDigit() })         append("Número  ")
+                                    if (!password.any { !it.isLetterOrDigit() }) append("Símbolo")
+                                }.trimEnd(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            repeat(4) { i ->
+                                LinearProgressIndicator(
+                                    progress = { if (i < score) 1f else 0f },
+                                    modifier = Modifier.weight(1f).height(4.dp),
+                                    color = barColor,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (password.isNotEmpty()) {
                     OutlinedTextField(
@@ -320,7 +406,7 @@ fun EmployeeFormDialog(
                         User(
                             id = employee?.id ?: 0,
                             name = name.trim(), email = email.trim().lowercase(),
-                            phone = phone.trim(), address = address.trim(),
+                            phone = PhoneUtils.digitsToDisplay(phoneDigits), address = address.trim(),
                             startDate = DateUtils.digitsToDisplay(startDate),
                             passwordHash = employee?.passwordHash ?: "", // mantido pelo VM
                             role = UserRole.EMPLOYEE,
