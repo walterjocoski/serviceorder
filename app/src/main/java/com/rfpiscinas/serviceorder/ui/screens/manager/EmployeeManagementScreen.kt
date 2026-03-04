@@ -225,6 +225,7 @@ private fun calcPasswordScore(password: String): Int {
     return minOf(score, 4)
 }
 
+@Composable
 fun EmployeeFormDialog(
     employee: User?,
     onDismiss: () -> Unit,
